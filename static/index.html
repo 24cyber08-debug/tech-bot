@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechBot AI</title>
+    <!-- React & ReactDOM (UMD) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   GLOBAL STYLES
+───────────────────────────────────────────────────────────────────────────── */
+const G = `
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#07070f;color:#e2e2f0;overflow-x:hidden;min-height:100vh}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1e1e30;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#2d2d45}
+
+/* ── ROOT LAYOUT ── */
+.root{display:flex;flex-direction:column;min-height:100vh}
+
+/* ── NAV ── */
+.nav{
+  position:sticky;top:0;z-index:200;
+  height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;
+  background:rgba(7,7,15,0.85);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.nav-left{display:flex;align-items:center;gap:10px;cursor:pointer}
+.nav-gem{
+  width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#6366f1);
+  border-radius:9px;display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.nav-gem::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+}
+.nav-gem svg{width:18px;height:18px;position:relative;z-index:1}
+.nav-brand{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#fff;letter-spacing:-0.01em}
+.nav-badge{
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;
+  background:rgba(99,102,241,0.15);color:#818cf8;
+  border:1px solid rgba(99,102,241,0.25);
+  padding:2px 8px;border-radius:20px;letter-spacing:0.05em;
+}
+.nav-center{display:flex;align-items:center;gap:4px}
+.nav-btn{
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;
+  color:#9ca3af;padding:6px 14px;border-radius:7px;cursor:pointer;
+  border:1px solid transparent;background:transparent;
+  transition:all 0.15s;
+}
+.nav-btn:hover{color:#e2e2f0;background:rgba(255,255,255,0.05)}
+.nav-btn.active{color:#fff;background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.3)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-login{
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;
+  padding:8px 20px;border-radius:8px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;
+  transition:opacity 0.15s;
+}
+.nav-login:hover{opacity:0.88}
+.nav-avatar{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:#fff;cursor:pointer;
+  border:2px solid rgba(99,102,241,0.4);
+}
+
+/* ── HOME ── */
+.home{flex:1;display:flex;flex-direction:column}
+.hero{
+  display:grid;grid-template-columns:1fr 1fr;
+  min-height:calc(100vh - 60px);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.hero-left{
+  padding:5rem 3rem 4rem;
+  display:flex;flex-direction:column;gap:1.75rem;
+  justify-content:center;
+  border-right:1px solid rgba(255,255,255,0.05);
+  position:relative;overflow:hidden;
+}
+.hero-left::before{
+  content:'';position:absolute;top:-200px;left:-200px;
+  width:500px;height:500px;
+  background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+  color:#818cf8;letter-spacing:0.08em;text-transform:uppercase;
+  background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);
+  padding:5px 14px;border-radius:20px;width:fit-content;
+}
+.hero-pill-dot{width:6px;height:6px;border-radius:50%;background:#34d399;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.hero-h1{
+  font-size:clamp(2rem,3.5vw,3.2rem);font-weight:700;line-height:1.1;
+  color:#f8fafc;letter-spacing:-0.03em;
+}
+.hero-h1 em{font-style:normal;color:transparent;
+  background:linear-gradient(135deg,#3b82f6,#6366f1,#8b5cf6);
+  -webkit-background-clip:text;background-clip:text;}
+.hero-desc{font-size:15px;color:#6b7280;line-height:1.8;max-width:460px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-grad{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:600;
+  padding:12px 28px;border-radius:9px;cursor:pointer;
+  transition:opacity 0.15s,transform 0.1s;display:flex;align-items:center;gap:8px;
+}
+.btn-grad:hover{opacity:0.88;transform:translateY(-1px)}
+.btn-outline{
+  background:transparent;color:#e2e2f0;
+  border:1px solid rgba(255,255,255,0.12);
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:500;
+  padding:12px 24px;border-radius:9px;cursor:pointer;transition:all 0.15s;
+}
+.btn-outline:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.25)}
+.hero-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;
+}
+.hstat{
+  padding:1rem 1.25rem;
+  border-right:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.015);
+}
+.hstat:last-child{border-right:none}
+.hstat-n{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:600;color:#f8fafc}
+.hstat-l{font-size:11px;color:#4b5563;margin-top:3px}
+
+.hero-right{
+  display:flex;align-items:center;justify-content:center;
+  padding:3rem 2.5rem;background:rgba(255,255,255,0.01);position:relative;
+}
+.hero-right::before{
+  content:'';position:absolute;bottom:-100px;right:-100px;
+  width:350px;height:350px;
+  background:radial-gradient(circle,rgba(59,130,246,0.06) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+/* ── AGENT FLOW CARD ── */
+.agent-flow{
+  width:100%;max-width:440px;
+  border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;
+}
+.af-header{
+  background:rgba(255,255,255,0.03);padding:1rem 1.25rem;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.af-title{font-family:'JetBrains Mono',monospace;font-size:12px;color:#9ca3af}
+.af-live{
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:#34d399;
+  display:flex;align-items:center;gap:5px;
+}
+.af-live-dot{width:6px;height:6px;border-radius:50%;background:#34d399;animation:pulse 1.5s infinite}
+.af-body{padding:1.25rem;display:flex;flex-direction:column;gap:10px}
+.af-step{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:10px 12px;border-radius:9px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);
+  transition:all 0.3s;
+}
+.af-step.active{background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.25)}
+.af-step.done{background:rgba(52,211,153,0.05);border-color:rgba(52,211,153,0.15)}
+.af-step-icon{
+  width:30px;height:30px;border-radius:7px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.af-step-info{flex:1}
+.af-step-label{font-size:12px;font-weight:600;color:#e2e2f0;margin-bottom:2px}
+.af-step-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b7280;line-height:1.5}
+.af-step-status{
+  font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;
+  padding:2px 7px;border-radius:20px;
+}
+.status-wait{background:rgba(107,114,128,0.15);color:#9ca3af}
+.status-run{background:rgba(99,102,241,0.15);color:#818cf8}
+.status-done{background:rgba(52,211,153,0.12);color:#34d399}
+.af-connector{
+  width:1px;height:14px;background:rgba(255,255,255,0.06);
+  margin:0 auto;margin-left:26px;
+}
+
+/* ── FEATURES STRIP ── */
+.feat-strip{padding:3rem 2rem;border-bottom:1px solid rgba(255,255,255,0.05)}
+.strip-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  max-width:1100px;margin:0 auto 2rem;
+}
+.strip-hd h2{font-size:16px;font-weight:600;color:#f8fafc}
+.strip-hd-sub{font-family:'JetBrains Mono',monospace;font-size:11px;color:#4b5563}
+.feat-row{
+  max-width:1100px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:1px;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.04);border-radius:12px;overflow:hidden;
+}
+.fc{
+  background:#07070f;padding:1.1rem 1.25rem;
+  display:flex;flex-direction:column;gap:6px;
+  transition:background 0.15s;cursor:default;
+}
+.fc:hover{background:rgba(255,255,255,0.025)}
+.fc-top{display:flex;align-items:center;justify-content:space-between}
+.fc-icon{
+  width:28px;height:28px;border-radius:7px;
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;
+}
+.fc-num{font-family:'JetBrains Mono',monospace;font-size:9px;color:#374151}
+.fc-title{font-size:12.5px;font-weight:600;color:#e2e2f0;line-height:1.35}
+.fc-desc{font-size:11px;color:#4b5563;line-height:1.6}
+.fc-tag{
+  align-self:flex-start;font-family:'JetBrains Mono',monospace;
+  font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px;
+}
+
+/* ── CHAT PAGE ── */
+.chat-page{flex:1;display:flex;height:calc(100vh - 60px)}
+
+/* sidebar */
+.sidebar{
+  width:260px;flex-shrink:0;
+  border-right:1px solid rgba(255,255,255,0.05);
+  display:flex;flex-direction:column;
+  background:rgba(255,255,255,0.01);
+}
+.sb-header{
+  padding:1rem 1rem 0.75rem;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sb-title{font-size:12px;font-weight:600;color:#9ca3af;letter-spacing:0.04em;text-transform:uppercase}
+.sb-new{
+  width:26px;height:26px;border-radius:6px;
+  background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.25);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  color:#818cf8;font-size:16px;transition:all 0.15s;
+}
+.sb-new:hover{background:rgba(99,102,241,0.25)}
+.sb-list{flex:1;overflow-y:auto;padding:0.5rem 0.5rem}
+.sb-item{
+  padding:0.65rem 0.75rem;border-radius:8px;cursor:pointer;
+  transition:background 0.15s;margin-bottom:2px;
+}
+.sb-item:hover{background:rgba(255,255,255,0.04)}
+.sb-item.active{background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2)}
+.sb-item-title{font-size:12.5px;font-weight:500;color:#d1d5db;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.sb-item-meta{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4b5563}
+.sb-section{font-family:'JetBrains Mono',monospace;font-size:9px;color:#374151;
+  letter-spacing:0.06em;text-transform:uppercase;padding:0.5rem 0.75rem 0.25rem;margin-top:0.5rem}
+
+/* main chat area */
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-topbar{
+  padding:0.85rem 1.5rem;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  background:rgba(255,255,255,0.01);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.chat-topbar-left{display:flex;align-items:center;gap:10px}
+.online-dot{width:8px;height:8px;border-radius:50%;background:#34d399}
+.chat-topbar-title{font-size:14px;font-weight:600;color:#e2e2f0}
+.chat-topbar-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:#4b5563}
+.model-chip{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:rgba(59,130,246,0.1);color:#60a5fa;
+  border:1px solid rgba(59,130,246,0.2);padding:3px 10px;border-radius:20px;
+}
+.chat-messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem}
+.msg-row{display:flex;gap:11px;align-items:flex-start}
+.msg-row.u{flex-direction:row-reverse}
+.av{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+}
+.av.bot{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff}
+.av.user{background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.25)}
+.bub{max-width:78%;padding:0.85rem 1.1rem;border-radius:11px;font-size:13.5px;line-height:1.75}
+.bub.bot{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);color:#e2e2f0;
+}
+.bub.user{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none}
+.code-block{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  background:#05050c;border:1px solid rgba(255,255,255,0.07);
+  color:#93c5fd;padding:1rem;border-radius:8px;margin-top:8px;
+  white-space:pre;overflow-x:auto;line-height:1.9;
+}
+.code-block .c-key{color:#f472b6}
+.code-block .c-str{color:#86efac}
+.code-block .c-num{color:#fb923c}
+
+/* agent steps inside message */
+.agent-steps-msg{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.asm-step{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 10px;border-radius:8px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);
+  font-size:12px;
+}
+.asm-icon{width:20px;height:20px;border-radius:5px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:10px}
+.asm-label{font-weight:500;color:#d1d5db}
+.asm-val{font-family:'JetBrains Mono',monospace;font-size:10px;color:#6b7280;margin-left:auto}
+
+.typing-dots{display:flex;gap:4px;padding:4px 0}
+.td{width:6px;height:6px;border-radius:50%;background:#6b7280;animation:tdot 1.2s infinite}
+.td:nth-child(2){animation-delay:0.2s}
+.td:nth-child(3){animation-delay:0.4s}
+@keyframes tdot{0%,60%,100%{opacity:0.3;transform:scale(1)}30%{opacity:1;transform:scale(1.25)}}
+
+/* agent pills BELOW chat input */
+.agent-pills-bar{
+  padding:0.75rem 1.5rem 0;
+  display:flex;gap:8px;flex-wrap:wrap;
+}
+.agent-pill{
+  display:flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:500;color:#9ca3af;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+  padding:6px 14px;border-radius:20px;cursor:pointer;transition:all 0.15s;
+}
+.agent-pill:hover{color:#e2e2f0;border-color:rgba(255,255,255,0.18)}
+.agent-pill.sel{color:#fff;border-color:rgba(99,102,241,0.4);background:rgba(99,102,241,0.12)}
+.agent-pill-dot{width:7px;height:7px;border-radius:50%}
+
+.chat-input-zone{padding:0 1.5rem 1.25rem}
+.chat-input-row{
+  display:flex;gap:10px;align-items:flex-end;margin-top:0.75rem;
+}
+.chat-textarea{
+  flex:1;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);border-radius:10px;
+  padding:11px 15px;font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;
+  color:#e2e2f0;outline:none;resize:none;min-height:46px;max-height:130px;
+  transition:border-color 0.15s;line-height:1.6;
+}
+.chat-textarea::placeholder{color:#374151}
+.chat-textarea:focus{border-color:rgba(99,102,241,0.45)}
+.send-btn{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;
+  color:#fff;width:46px;height:46px;border-radius:10px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:opacity 0.15s;flex-shrink:0;
+}
+.send-btn:hover{opacity:0.85}
+.send-btn:disabled{opacity:0.35;cursor:not-allowed}
+.prompt-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:0.5rem}
+.pchip{
+  font-size:11.5px;color:#6b7280;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+  padding:5px 12px;border-radius:20px;cursor:pointer;transition:all 0.15s;
+}
+.pchip:hover{color:#d1d5db;border-color:rgba(255,255,255,0.15)}
+
+/* ── ABOUT PAGE ── */
+.about-page{flex:1;overflow-y:auto}
+.about-hero{
+  padding:5rem 2rem 4rem;text-align:center;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  position:relative;overflow:hidden;
+}
+.about-hero::before{
+  content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:600px;height:300px;
+  background:radial-gradient(ellipse,rgba(99,102,241,0.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.about-hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+  color:#818cf8;background:rgba(99,102,241,0.08);
+  border:1px solid rgba(99,102,241,0.2);padding:5px 16px;border-radius:20px;
+  margin-bottom:1.5rem;
+}
+.about-h1{
+  font-size:clamp(2rem,4vw,3.5rem);font-weight:700;
+  color:#f8fafc;letter-spacing:-0.03em;line-height:1.1;margin-bottom:1.25rem;
+}
+.about-h1 em{font-style:normal;color:transparent;
+  background:linear-gradient(135deg,#3b82f6,#6366f1,#8b5cf6);
+  -webkit-background-clip:text;background-clip:text;}
+.about-sub{font-size:16px;color:#6b7280;line-height:1.8;max-width:600px;margin:0 auto 2.5rem}
+.about-meta-row{
+  display:flex;align-items:center;justify-content:center;gap:3rem;flex-wrap:wrap;
+}
+.about-stat{display:flex;flex-direction:column;align-items:center;gap:3px}
+.about-stat-n{
+  font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;
+  color:transparent;background:linear-gradient(135deg,#3b82f6,#6366f1);
+  -webkit-background-clip:text;background-clip:text;
+}
+.about-stat-l{font-size:12px;color:#4b5563}
+.about-stat-div{width:1px;height:40px;background:rgba(255,255,255,0.06)}
+
+/* architecture section */
+.arch-section{padding:4rem 2rem;border-bottom:1px solid rgba(255,255,255,0.05)}
+.section-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;
+  color:#818cf8;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;
+}
+.section-h2{font-size:24px;font-weight:700;color:#f8fafc;letter-spacing:-0.02em;margin-bottom:0.75rem}
+.section-sub{font-size:14px;color:#6b7280;line-height:1.75;max-width:560px;margin-bottom:2.5rem}
+.arch-grid{
+  max-width:1000px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;
+}
+.arch-card{
+  padding:1.75rem;border-radius:14px;
+  border:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.02);
+  transition:border-color 0.2s,background 0.2s;
+}
+.arch-card:hover{border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.04)}
+.arch-icon{
+  width:44px;height:44px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  margin-bottom:1rem;
+}
+.arch-card-title{font-size:16px;font-weight:700;color:#e2e2f0;margin-bottom:0.5rem}
+.arch-card-desc{font-size:13px;color:#6b7280;line-height:1.7;margin-bottom:1rem}
+.arch-card-badge{
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+  padding:3px 10px;border-radius:20px;display:inline-block;
+}
+
+/* 25 capabilities */
+.caps-section{padding:4rem 2rem}
+.caps-filter{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1.75rem}
+.cap-filter-btn{
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+  padding:5px 14px;border-radius:20px;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.08);background:transparent;color:#6b7280;
+  transition:all 0.15s;
+}
+.cap-filter-btn:hover{color:#e2e2f0;border-color:rgba(255,255,255,0.18)}
+.cap-filter-btn.on{
+  background:rgba(99,102,241,0.12);color:#818cf8;border-color:rgba(99,102,241,0.35);
+}
+.caps-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+  gap:1px;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.04);border-radius:14px;overflow:hidden;
+}
+.cap-card{
+  background:#07070f;padding:1.25rem;
+  display:flex;flex-direction:column;gap:7px;
+  transition:background 0.15s;cursor:default;
+}
+.cap-card:hover{background:rgba(255,255,255,0.02)}
+.cap-card-top{display:flex;align-items:center;justify-content:space-between}
+.cap-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:#374151;font-weight:500}
+.cap-tag{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px}
+.cap-title{font-size:13px;font-weight:600;color:#e2e2f0;line-height:1.4}
+.cap-desc{font-size:11.5px;color:#4b5563;line-height:1.65}
+
+/* ── LOGIN MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+}
+.modal{
+  width:420px;background:#0d0d1a;
+  border:1px solid rgba(255,255,255,0.08);border-radius:16px;
+  overflow:hidden;position:relative;
+}
+.modal::before{
+  content:'';position:absolute;top:-150px;left:-150px;
+  width:400px;height:400px;
+  background:radial-gradient(circle,rgba(99,102,241,0.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.modal-header{padding:1.75rem 1.75rem 0;position:relative;z-index:1}
+.modal-logo{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;
+}
+.modal-h2{font-size:22px;font-weight:700;color:#f8fafc;margin-bottom:6px;letter-spacing:-0.02em}
+.modal-sub{font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:1.5rem}
+.modal-body{padding:0 1.75rem 1.75rem;position:relative;z-index:1}
+.modal-label{font-size:12px;font-weight:600;color:#9ca3af;margin-bottom:6px;display:block}
+.modal-input{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);border-radius:9px;
+  padding:11px 14px;font-size:14px;font-family:'Plus Jakarta Sans',sans-serif;
+  color:#e2e2f0;outline:none;transition:border-color 0.15s;margin-bottom:1rem;
+}
+.modal-input::placeholder{color:#374151}
+.modal-input:focus{border-color:rgba(99,102,241,0.5)}
+.modal-submit{
+  width:100%;background:linear-gradient(135deg,#3b82f6,#6366f1);
+  color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:14px;font-weight:600;padding:13px;border-radius:9px;
+  cursor:pointer;transition:opacity 0.15s;margin-bottom:1rem;
+}
+.modal-submit:hover{opacity:0.88}
+.modal-divider{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.modal-divider-line{flex:1;height:1px;background:rgba(255,255,255,0.06)}
+.modal-divider-text{font-size:12px;color:#4b5563}
+.modal-social{
+  width:100%;background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);color:#e2e2f0;
+  font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:500;
+  padding:11px;border-radius:9px;cursor:pointer;transition:all 0.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;
+}
+.modal-social:hover{background:rgba(255,255,255,0.07)}
+.modal-close{
+  position:absolute;top:1rem;right:1rem;
+  width:28px;height:28px;border-radius:6px;
+  background:rgba(255,255,255,0.05);border:none;color:#6b7280;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:all 0.15s;z-index:2;
+}
+.modal-close:hover{background:rgba(255,255,255,0.1);color:#e2e2f0}
+.modal-footer-text{text-align:center;font-size:12px;color:#4b5563}
+.modal-footer-text span{color:#818cf8;cursor:pointer}
+
+/* ── FOOTER ── */
+.footer{
+  border-top:1px solid rgba(255,255,255,0.05);
+  background:rgba(255,255,255,0.01);
+  padding:1.25rem 2rem;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;
+}
+.footer-l{font-family:'JetBrains Mono',monospace;font-size:11px;color:#374151}
+.footer-links{display:flex;gap:1.5rem}
+.footer-link{font-size:12px;color:#374151;cursor:pointer;transition:color 0.15s}
+.footer-link:hover{color:#6b7280}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp 0.4s ease both}
+.fu1{animation-delay:0.06s}.fu2{animation-delay:0.12s}.fu3{animation-delay:0.18s}
+.fu4{animation-delay:0.24s}.fu5{animation-delay:0.30s}
+`;
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   DATA
+───────────────────────────────────────────────────────────────────────────── */
+const FEATURES = [
+  {id:"01",title:"Multi-language codegen",desc:"Generate code in 40+ languages: Python, Go, Rust, TypeScript, Java, Kotlin.",tag:"Core",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"02",title:"Intelligent code review",desc:"Line-by-line feedback with severity levels and pattern recognition.",tag:"Review",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+  {id:"03",title:"Bug detection & autofix",desc:"Catches null refs, logic errors, and race conditions before production.",tag:"Debug",bg:"rgba(248,113,113,0.08)",tc:"#f87171",bc:"rgba(248,113,113,0.18)"},
+  {id:"04",title:"Security vulnerability scan",desc:"OWASP Top-10, exposed secrets, and injection flaw detection.",tag:"Security",bg:"rgba(251,146,60,0.08)",tc:"#fb923c",bc:"rgba(251,146,60,0.18)"},
+  {id:"05",title:"Performance profiler",desc:"Detects hotspots, memory leaks, Big-O analysis and suggestions.",tag:"Perf",bg:"rgba(251,146,60,0.08)",tc:"#fbbf24",bc:"rgba(251,191,36,0.18)"},
+  {id:"06",title:"Auto documentation",desc:"Generates JSDoc, Docstring, Rustdoc, Swagger from your source.",tag:"Docs",bg:"rgba(167,139,250,0.08)",tc:"#a78bfa",bc:"rgba(167,139,250,0.18)"},
+  {id:"07",title:"Test case generator",desc:"Unit, integration, and edge-case tests in Jest, Pytest, JUnit.",tag:"Testing",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+  {id:"08",title:"Code refactoring engine",desc:"Restructures messy code into clean, maintainable design patterns.",tag:"Core",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"09",title:"Regex builder & tester",desc:"Builds regexes with step-by-step match breakdowns and live preview.",tag:"Util",bg:"rgba(251,191,36,0.08)",tc:"#fbbf24",bc:"rgba(251,191,36,0.18)"},
+  {id:"10",title:"API integration guide",desc:"REST, GraphQL, gRPC with live auth flows and error handling.",tag:"API",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"11",title:"Database query builder",desc:"Optimized SQL and NoSQL queries from plain-English intent.",tag:"DB",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+  {id:"12",title:"Algorithm visualizer",desc:"Walk-throughs for sort, graph traversal, DP, and search algos.",tag:"Learn",bg:"rgba(167,139,250,0.08)",tc:"#a78bfa",bc:"rgba(167,139,250,0.18)"},
+  {id:"13",title:"CI/CD pipeline builder",desc:"GitHub Actions, GitLab CI, Jenkins pipelines from requirements.",tag:"DevOps",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"14",title:"Git workflow assistant",desc:"Branching, conflict resolution, rebasing, commit hygiene.",tag:"Git",bg:"rgba(248,113,113,0.08)",tc:"#f87171",bc:"rgba(248,113,113,0.18)"},
+  {id:"15",title:"Dev environment setup",desc:"Docker, npm, pip, cargo, Makefile scripts for any stack.",tag:"DevOps",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"16",title:"Code translation",desc:"Converts modules between languages preserving logic and idioms.",tag:"Core",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+  {id:"17",title:"Error decoder",desc:"Translates compiler errors and runtime exceptions to plain English.",tag:"Debug",bg:"rgba(248,113,113,0.08)",tc:"#f87171",bc:"rgba(248,113,113,0.18)"},
+  {id:"18",title:"Stack trace analysis",desc:"Root-cause across multi-service distributed traces with fix tips.",tag:"Debug",bg:"rgba(248,113,113,0.08)",tc:"#f87171",bc:"rgba(248,113,113,0.18)"},
+  {id:"19",title:"Cloud architecture advisor",desc:"AWS, GCP, Azure blueprints with cost estimates and scaling.",tag:"Cloud",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"20",title:"Dependency auditor",desc:"Audits package.json and requirements.txt for CVEs and license issues.",tag:"Security",bg:"rgba(251,146,60,0.08)",tc:"#fb923c",bc:"rgba(251,146,60,0.18)"},
+  {id:"21",title:"Tech stack comparator",desc:"Trade-off analysis across frameworks, ORMs, databases, and patterns.",tag:"Research",bg:"rgba(167,139,250,0.08)",tc:"#a78bfa",bc:"rgba(167,139,250,0.18)"},
+  {id:"22",title:"Project scaffolder",desc:"Full boilerplate for React, Next.js, FastAPI, Django, NestJS.",tag:"Core",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+  {id:"23",title:"IDE-style autocomplete",desc:"Context-aware completions using your entire file scope.",tag:"Core",bg:"rgba(59,130,246,0.1)",tc:"#60a5fa",bc:"rgba(59,130,246,0.2)"},
+  {id:"24",title:"Concept explainer",desc:"CS concepts — from pointers to distributed consensus algorithms.",tag:"Learn",bg:"rgba(167,139,250,0.08)",tc:"#a78bfa",bc:"rgba(167,139,250,0.18)"},
+  {id:"25",title:"Code standards enforcer",desc:"ESLint, Prettier, and custom style rules automated across your repo.",tag:"Team",bg:"rgba(52,211,153,0.08)",tc:"#34d399",bc:"rgba(52,211,153,0.18)"},
+];
+
+const AGENTS = [
+  {id:"planner",label:"Planner Agent",color:"#818cf8",dot:"#6366f1",desc:"JSON plan from text"},
+  {id:"executor",label:"Executor Agent",color:"#34d399",dot:"#10b981",desc:"Executes plan / APIs"},
+  {id:"verifier",label:"Verifier Agent",color:"#fb923c",dot:"#f97316",desc:"Validates final output"},
+];
+
+const OLD_CHATS = [
+  {id:1,title:"GitHub trending repos analysis",time:"2h ago",group:"Today"},
+  {id:2,title:"Debug authentication middleware",time:"5h ago",group:"Today"},
+  {id:3,title:"Optimize PostgreSQL queries",time:"Yesterday",group:"Yesterday"},
+  {id:4,title:"Build REST API with FastAPI",time:"Yesterday",group:"Yesterday"},
+  {id:5,title:"React state management review",time:"Mon",group:"This week"},
+  {id:6,title:"Docker Compose setup guide",time:"Sun",group:"This week"},
+];
+
+const BOT_RESPONSES = [
+  {
+    text:"I've decomposed your task into a 3-step plan. Here's what the Planner Agent produced:",
+    code:`{
+  "task": "Analyze trending repos + weather",
+  "steps": [
+    { "step": 1, "tool": "GitHubTool",
+      "action": "search_repos", "limit": 3 },
+    { "step": 2, "tool": "WeatherTool",
+      "action": "get_weather", "city": "Amsterdam" }
+  ],
+  "verified": true
+}`,
+    agentSteps:[
+      {icon:"🧠",label:"Planner Agent",val:"Plan generated · 2 steps",bg:"rgba(99,102,241,0.12)",tc:"#818cf8"},
+      {icon:"⚡",label:"Executor Agent",val:"APIs called · 0 errors",bg:"rgba(52,211,153,0.1)",tc:"#34d399"},
+      {icon:"✅",label:"Verifier Agent",val:"Schema valid · confidence 98%",bg:"rgba(251,146,60,0.1)",tc:"#fb923c"},
+    ]
+  },
+  {
+    text:"The Executor Agent ran all steps in sequence. Results collected and validated by the Verifier.",
+    code:`// TypeScript — type-safe memoize
+function memoize<A extends unknown[], R>(
+  fn: (...args: A) => R
+): (...args: A) => R {
+  const cache = new Map<string, R>();
+  return (...args: A): R => {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) return cache.get(key)!;
+    const result = fn(...args);
+    cache.set(key, result);
+    return result;
+  };
+}`,
+    agentSteps:[]
+  },
+  {
+    text:"Security scan complete. The Verifier Agent flagged 2 high-severity issues. Here's the structured report:",
+    code:`{
+  "scan_result": {
+    "severity": "HIGH",
+    "issues": [
+      { "line": 34, "type": "SECRET_EXPOSURE",
+        "detail": "JWT_SECRET in plaintext" },
+      { "line": 89, "type": "SQL_INJECTION",
+        "detail": "Unsanitized user input in query" }
+    ],
+    "verified": true,
+    "auto_patch_available": true
+  }
+}`,
+    agentSteps:[
+      {icon:"🛡️",label:"Security Scanner",val:"2 issues found",bg:"rgba(248,113,113,0.1)",tc:"#f87171"},
+      {icon:"✅",label:"Verifier Agent",val:"Report validated",bg:"rgba(52,211,153,0.1)",tc:"#34d399"},
+    ]
+  },
+];
+
+const PROMPTS = [
+  "Find top 3 trending Python repos on GitHub",
+  "Get the current weather in San Francisco",
+  "Get 3 interesting random facts",
+];
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   AGENT FLOW ANIMATION (Home page hero right)
+───────────────────────────────────────────────────────────────────────────── */
+function AgentFlow() {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setStep(s => (s + 1) % 4), 1600);
+    return () => clearInterval(t);
+  }, []);
+  const steps = [
+    {icon:"🧠",label:"Planner Agent",sub:'Producing JSON step plan...',color:"#818cf8",bg:"rgba(99,102,241,0.15)"},
+    {icon:"⚡",label:"Executor Agent",sub:'Calling GitHubTool.search_repos()',color:"#34d399",bg:"rgba(52,211,153,0.12)"},
+    {icon:"🌐",label:"Executor Agent",sub:'Calling WeatherTool.get_weather("Amsterdam")',color:"#60a5fa",bg:"rgba(59,130,246,0.12)"},
+    {icon:"✅",label:"Verifier Agent",sub:'Schema validated · verified: true',color:"#fb923c",bg:"rgba(251,146,60,0.12)"},
+  ];
+  return (
+    <div className="agent-flow">
+      <div className="af-header">
+        <span className="af-title">agent pipeline · live</span>
+        <span className="af-live"><span className="af-live-dot"/>running</span>
+      </div>
+      <div className="af-body">
+        {steps.map((s,i) => (
+          <div key={i}>
+            <div className={`af-step ${i===step?"active":i<step?"done":""}`}>
+              <div className="af-step-icon" style={{background:i<=step?s.bg:"rgba(255,255,255,0.04)"}}>{s.icon}</div>
+              <div className="af-step-info">
+                <div className="af-step-label">{s.label}</div>
+                <div className="af-step-sub">{s.sub}</div>
+              </div>
+              <span className={`af-step-status ${i<step?"status-done":i===step?"status-run":"status-wait"}`}>
+                {i<step?"done":i===step?"running":"pending"}
+              </span>
+            </div>
+            {i<steps.length-1&&<div className="af-connector"/>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   HOME PAGE
+───────────────────────────────────────────────────────────────────────────── */
+function HomePage({onNav}) {
+  const topFeatures = FEATURES.slice(0,8);
+  return (
+    <div className="home">
+      <div className="hero">
+        <div className="hero-left">
+          <div className="hero-pill fu"><span className="hero-pill-dot"/>Multi-Agent AI · CodeWar 2.0</div>
+          <h1 className="hero-h1 fu fu1">Plan. Execute.<br/><em>Verify.</em></h1>
+          <p className="hero-desc fu fu2">
+            TechBot AI is an advanced multi-agent operations assistant. It decomposes your natural-language tasks into structured plans, calls real APIs, and returns verified structured answers — powered by a 3-agent architecture.
+          </p>
+          <div className="hero-actions fu fu3">
+            <button className="btn-grad" onClick={()=>onNav("chat")}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="5,3 19,12 5,21"/></svg>
+              Try TechBot AI
+            </button>
+            <button className="btn-outline" onClick={()=>onNav("about")}>View 25 capabilities</button>
+          </div>
+          <div className="hero-stats fu fu4">
+            <div className="hstat"><div className="hstat-n">3</div><div className="hstat-l">AI agents</div></div>
+            <div className="hstat"><div className="hstat-n">25</div><div className="hstat-l">capabilities</div></div>
+            <div className="hstat"><div className="hstat-n">40+</div><div className="hstat-l">languages</div></div>
+          </div>
+        </div>
+        <div className="hero-right fu fu5">
+          <AgentFlow/>
+        </div>
+      </div>
+
+      <div className="feat-strip">
+        <div className="strip-hd">
+          <h2>Core capabilities</h2>
+          <span className="strip-hd-sub">8 of 25 shown · <span style={{color:"#818cf8",cursor:"pointer"}} onClick={()=>onNav("about")}>view all →</span></span>
+        </div>
+        <div className="feat-row">
+          {topFeatures.map(f=>(
+            <div key={f.id} className="fc">
+              <div className="fc-top">
+                <div className="fc-icon" style={{background:f.bg}}><span style={{fontSize:13}}>⚡</span></div>
+                <span className="fc-num">#{f.id}</span>
+              </div>
+              <div className="fc-title">{f.title}</div>
+              <div className="fc-desc">{f.desc}</div>
+              <span className="fc-tag" style={{background:f.bg,color:f.tc,border:`1px solid ${f.bc}`}}>{f.tag}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CHAT PAGE
+───────────────────────────────────────────────────────────────────────────── */
+function renderExecution(execData) {
+  if (!Array.isArray(execData)) return null;
+  return execData.map((ex, i) => {
+    if (ex.status !== "success") {
+      return (
+        <div key={i} style={{color:"#f87171", fontSize:"13px", marginTop:"10px", padding:"8px", background:"rgba(248,113,113,0.1)", borderRadius:"6px"}}>
+          <strong>Step {ex.step} ({ex.tool}):</strong> Failed - {ex.error}
+        </div>
+      );
+    }
+    return (
+      <div key={i} style={{marginBottom: "12px", marginTop:"8px"}}>
+        <strong style={{color:"#10b981", fontSize:"13px", display:"flex", alignItems:"center", gap:"6px"}}>
+           <span style={{background:"rgba(16,185,129,0.1)", padding:"2px 6px", borderRadius:"4px"}}>Step {ex.step}</span> 
+           {ex.tool} 
+           <span style={{color:"#9ca3af", fontWeight:"normal"}}>({ex.action})</span>
+        </strong>
+        <ul style={{margin:0, padding:0, marginTop:"8px", listStyle:"none", color:"#d1d5db", display:"flex", flexDirection:"column", gap:"6px"}}>
+          {ex.data && Array.isArray(ex.data) && ex.data.length > 0 ? ex.data.map((item, j) => (
+             <li key={j} style={{padding:"10px", background:"rgba(255,255,255,0.03)", border:"1px solid rgba(255,255,255,0.05)", borderRadius:"6px"}}>
+               <div style={{display:"flex", alignItems:"flex-start", justifyContent:"space-between"}}>
+                 {item.name ? <strong style={{color:"#60a5fa", fontSize:"14px"}}>{item.name}</strong> : <strong style={{color:"#e5e7eb", fontSize:"14px"}}>Result {j+1}</strong>}
+                 {item.url ? <a href={item.url} target="_blank" rel="noreferrer" style={{color:"#a78bfa", fontSize:"12px", textDecoration:"none", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:"12px"}}>↗ GitHub</a> : null}
+               </div>
+               {item.description ? <div style={{fontSize:"13px", color:"#9ca3af", marginTop:"6px", lineHeight:"1.4"}}>{item.description}</div> : null}
+               <div style={{display:"flex", flexWrap:"wrap", gap:"8px", marginTop:"8px"}}>
+                 {Object.entries(item).filter(([k])=>!["name","url","description"].includes(k)).map(([k,v]) => (
+                   <span key={k} style={{fontSize:"11.5px", background:"rgba(0,0,0,0.3)", padding:"3px 8px", borderRadius:"4px", border:"1px solid rgba(255,255,255,0.05)"}}>
+                     <span style={{color:"#9ca3af", marginRight:"4px"}}>{k.replace("_", " ")}:</span> 
+                     <span style={{color:"#e5e7eb"}}>{typeof v === 'object' ? JSON.stringify(v) : v}</span>
+                   </span>
+                 ))}
+               </div>
+             </li>
+          )) : typeof ex.data === 'object' && ex.data !== null ? (
+             <li style={{padding:"10px", background:"rgba(255,255,255,0.03)", borderRadius:"6px", border:"1px solid rgba(255,255,255,0.05)"}}>
+               <div style={{display:"flex", flexWrap:"wrap", gap:"10px"}}>
+                 {Object.entries(ex.data).map(([k,v]) => (
+                   <div key={k} style={{fontSize:"13px", background:"rgba(0,0,0,0.3)", padding:"6px 12px", borderRadius:"6px", border:"1px solid rgba(255,255,255,0.05)", display:"flex", alignItems:"center"}}>
+                     <strong style={{color:"#60a5fa", marginRight:"8px", textTransform:"capitalize"}}>{k.replace(/_/g, " ")}:</strong> 
+                     <span style={{color:"#e5e7eb"}}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</span>
+                   </div>
+                 ))}
+               </div>
+             </li>
+          ) : (
+             <li style={{padding:"10px", background:"rgba(255,255,255,0.03)", borderRadius:"6px", color:"#e5e7eb", fontSize:"13px"}}>
+               {String(ex.data)}
+             </li>
+          )}
+        </ul>
+      </div>
+    );
+  });
+}
+
+function renderVerifier(v) {
+  if (!v) return null;
+  return (
+    <div style={{marginTop:"8px", marginBottom:"12px", color:"#d1d5db", fontSize:"13px", lineHeight:"1.5"}}>
+      <div style={{marginBottom:"10px", paddingBottom:"8px", borderBottom:"1px solid rgba(255,255,255,0.05)"}}>
+         <strong style={{color:"#fcd34d", display:"flex", alignItems:"center", gap:"6px"}}>
+           <span style={{background:"rgba(252,211,77,0.1)", padding:"2px 6px", borderRadius:"4px"}}>Confidence</span> {v.confidence_score}%
+         </strong>
+         <div style={{color:"#9ca3af", marginTop:"4px"}}>Steps Succeeded: {v.successful_steps} / {v.total_steps}</div>
+      </div>
+      
+      <div style={{marginBottom:"8px"}}>
+        <strong style={{color:"#e5e7eb"}}>✓ Planner Check</strong>
+        <ul style={{margin:"4px 0 0 16px", padding:"0", color: v.level1_planner?.passed ? "#34d399" : "#f87171"}}>
+           <li>{v.level1_planner?.passed ? "Plan structure valid." : "Planning errors detected."}</li>
+           {v.level1_planner?.issues?.map((iss, i) => <li key={i}>{iss}</li>)}
+        </ul>
+      </div>
+
+      <div style={{marginBottom:"8px"}}>
+        <strong style={{color:"#e5e7eb"}}>✓ Executor Check</strong>
+        <ul style={{margin:"4px 0 0 16px", padding:"0", color: v.level2_executor?.passed ? "#34d399" : "#f87171"}}>
+           <li>{v.level2_executor?.passed ? "Execution matches intended flow." : "Execution discrepancies found."}</li>
+           {v.level2_executor?.failed_steps?.map((fs, i) => <li key={i}>Step {fs.step} Failed: {fs.reason}</li>)}
+           {v.level2_executor?.issues?.map((iss, i) => <li key={i}>{iss}</li>)}
+        </ul>
+      </div>
+
+      <div style={{marginBottom:"8px"}}>
+        <strong style={{color:"#e5e7eb"}}>✓ Task Relevance</strong>
+        <ul style={{margin:"4px 0 0 16px", padding:"0", color: v.level3_relevance?.passed ? "#34d399" : "#f87171"}}>
+           <li>{v.level3_relevance?.passed ? "Output fully addresses original task." : "Output may miss user requirements."}</li>
+           {v.level3_relevance?.issues?.map((iss, i) => <li key={i}>{iss}</li>)}
+        </ul>
+      </div>
+
+      {v.retry_suggestions && v.retry_suggestions.length > 0 && (
+        <div style={{marginTop:"10px", padding:"8px", background:"rgba(251,146,60,0.1)", borderRadius:"6px", border:"1px solid rgba(251,146,60,0.2)"}}>
+          <strong style={{color:"#fb923c"}}>Retry Suggestions:</strong>
+          <ul style={{margin:"4px 0 0 16px", padding:"0", color:"#fdba74"}}>
+            {v.retry_suggestions.map((rs, i) => <li key={i}>{rs}</li>)}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChatPage({user}) {
+  const [activeChatId, setActiveChatId] = useState(null);
+    const [history, setHistory] = useState([]);
+  useEffect(() => {
+    fetch('/history').then(r=>r.json()).then(d=>setHistory(d.runs||[]));
+  }, []);
+  const [messages, setMessages] = useState([
+    {role:"bot",text:"Hello! I'm TechBot AI — your multi-agent coding assistant. I use a Planner → Executor → Verifier pipeline to handle complex tasks. Try asking me to analyze repos, scan for vulnerabilities, or build an architecture plan.",code:null,agentSteps:[]}
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selectedAgents, setSelectedAgents] = useState({planner: true, executor: true, verifier: true});
+  const endRef = useRef(null);
+
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[messages,loading]);
+
+  const send = useCallback(async (msg)=>{
+    const text = msg||input.trim();
+    if(!text||loading) return;
+    setInput("");
+    setMessages(p=>[...p,{role:"user",text,code:null,agentSteps:[]}]);
+    setLoading(true);
+    try {
+      const agentsToRun = Object.entries(selectedAgents).filter(([k,v])=>v).map(([k])=>k);
+      if (agentsToRun.length === 0) {
+        setMessages(p=>[...p,{role:"bot",text:"⚠ Please select at least one agent to run.",code:null,agentSteps:[]}]);
+        setLoading(false);
+        return;
+      }
+      
+      let payload = { task: text, parallel: true, agents: agentsToRun };
+      
+      if (!agentsToRun.includes("planner")) {
+        let parsed;
+        try { parsed = JSON.parse(text); } 
+        catch (e) {
+          setMessages(p=>[...p,{role:"bot",text:"⚠ Invalid JSON. When bypassing the Planner, you must provide valid JSON input.",code:null,agentSteps:[]}]);
+          setLoading(false); return;
+        }
+
+      if (agentsToRun.includes("verifier") && !agentsToRun.includes("executor")) {
+          if (!parsed.plan || !parsed.execution) {
+            setMessages(p=>[...p,{role:"bot",text:"⚠ Verifier-only mode requires a JSON object with both 'plan' and 'execution' keys.",code:null,agentSteps:[]}]);
+            setLoading(false); return;
+          }
+          payload = { task: parsed.task || text, plan: parsed.plan, execution: parsed.execution, parallel: true, agents: agentsToRun };
+        } else {
+          payload = { task: parsed.task || text, plan: parsed.plan || parsed, parallel: true, agents: agentsToRun };
+        }
+      }
+
+      let resp;
+      let data;
+      try {
+        resp = await fetch('/run', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const respText = await resp.text();
+        try { data = JSON.parse(respText); } catch(e) { throw new Error(respText || "Task failed completely"); }
+        if (!resp.ok) throw new Error(data.detail?.error || data.error || "Task failed");
+  
+        const c = JSON.parse(localStorage.getItem('promptCache') || '{}');
+        c[JSON.stringify(payload)] = data;
+        localStorage.setItem('promptCache', JSON.stringify(c));
+
+      } catch (err) {
+        const c = JSON.parse(localStorage.getItem('promptCache') || '{}');
+        const cached = c[JSON.stringify(payload)];
+        if (cached) {
+          data = cached;
+          data._cached = true;
+        } else {
+          throw err;
+        }
+      }
+      let botText = `Completed agents: ${agentsToRun.join(', ')}`;
+      let codeOutputs = {};
+      let steps = [];
+      let execUI = null;
+      let verifUI = null;
+
+      if (agentsToRun.includes("planner") && data.plan) {
+        codeOutputs["Planner_Output"] = data.plan;
+        botText = "Created JSON plan.";
+      }
+      if (agentsToRun.includes("executor") && data.execution) {
+        execUI = renderExecution(data.execution);
+        botText = "Executed plan steps.";
+      }
+      if (agentsToRun.includes("verifier") && data.answer) {
+        verifUI = renderVerifier(data.answer);
+        botText = data.answer.summary || "Task verified successfully.";
+        steps.push({
+          icon:"✅",
+          label:"Verifier Agent",
+          val:(data.answer.verified?"All checks passed":"Issues detected"),
+          bg:(data.answer.verified?"rgba(52,211,153,0.1)":"rgba(248,113,113,0.1)"),
+          tc:(data.answer.verified?"#34d399":"#f87171")
+        });
+      }
+
+      const codeOutput = Object.keys(codeOutputs).length > 0 ? JSON.stringify(codeOutputs, null, 2) : null;
+      const finalBotText = data._cached ? botText + " (Serving from offline cache ⚡)" : botText;
+      let isError = (!codeOutput && !execUI && !verifUI && steps.length===0);
+      setMessages(p=>[...p,{role:"bot",text:isError?"No output generated.":finalBotText,code:codeOutput,execUI:execUI,verifUI:verifUI,agentSteps:steps}]);
+      fetch('/history').then(r=>r.json()).then(d=>setHistory(d.runs||[]));
+    } catch (err) {
+      setMessages(p=>[...p,{role:"bot",text:"Error: "+err.message,code:null,agentSteps:[]}]);
+    } finally {
+      setLoading(false);
+    }
+  },[input,loading,selectedAgents]);
+
+  
+  const historyGroups = history.map(h => ({ 
+    id: h.run_id, 
+    title: h.task || "Executor Run", 
+    time: new Date(h.timestamp).toLocaleString(), 
+    group: "History", 
+    data: h 
+  }));
+  const groups = ["History"];
+  const OLD_CHATS = historyGroups;
+    
+
+  return (
+    <div className="chat-page">
+      {/* SIDEBAR */}
+      <div className="sidebar">
+        <div className="sb-header">
+          <span className="sb-title">Chats</span>
+          <div className="sb-new" onClick={()=>setActiveChatId(null)} title="New chat">+</div>
+        </div>
+        <div className="sb-list">
+          <div className="sb-item" style={{background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.18)",marginBottom:8}}>
+            <div className="sb-item-title" style={{color:"#818cf8"}}>+ New conversation</div>
+            <div className="sb-item-meta">Start fresh</div>
+          </div>
+          {groups.map(g=>(
+            <div key={g}>
+              <div className="sb-section">{g}</div>
+              {OLD_CHATS.filter(c=>c.group===g).map(c=>(
+                <div key={c.id} className={`sb-item ${activeChatId===c.id?"active":""}`} onClick={()=>setActiveChatId(c.id)}>
+                  <div className="sb-item-title">{c.title}</div>
+                  <div className="sb-item-meta">{c.time}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* MAIN */}
+      <div className="chat-main">
+        <div className="chat-topbar">
+          <div className="chat-topbar-left">
+            <div className="online-dot"/>
+            <span className="chat-topbar-title">TechBot AI</span>
+            <span className="chat-topbar-sub">— 3-agent pipeline · online</span>
+          </div>
+          <span className="model-chip">Plan → Execute → Verify</span>
+        </div>
+
+        <div className="chat-messages">
+          {messages.map((m,i)=>(
+            <div key={i} className={`msg-row ${m.role==="user"?"u":""} fu`}>
+              <div className={`av ${m.role==="bot"?"bot":"user"}`}>{m.role==="bot"?"TB":"YU"}</div>
+              <div className={`bub ${m.role==="bot"?"bot":"user"}`}>
+                {m.text}
+                {m.code&&<div className="code-block" style={{marginTop:"8px"}}>{m.code}</div>}
+                {m.execUI&&<div className="exec-ui-block" style={{marginTop:"12px"}}>{m.execUI}</div>}
+                {m.verifUI&&<div className="verif-ui-block" style={{marginTop:"12px", padding:"12px", background:"rgba(0,0,0,0.2)", borderRadius:"8px", border:"1px solid rgba(255,255,255,0.05)"}}>{m.verifUI}</div>}
+                {m.agentSteps&&m.agentSteps.length>0&&(
+                  <div className="agent-steps-msg">
+                    {m.agentSteps.map((s,j)=>(
+                      <div key={j} className="asm-step" style={{borderColor:s.bg}}>
+                        <div className="asm-icon" style={{background:s.bg,fontSize:12}}>{s.icon}</div>
+                        <span className="asm-label">{s.label}</span>
+                        <span className="asm-val">{s.val}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {loading&&(
+            <div className="msg-row fu">
+              <div className="av bot">TB</div>
+              <div className="bub bot"><div className="typing-dots"><div className="td"/><div className="td"/><div className="td"/></div></div>
+            </div>
+          )}
+          <div ref={endRef}/>
+        </div>
+
+        {/* AGENT PILLS — below messages, above input */}
+        <div className="agent-pills-bar">
+          {AGENTS.map(a=>(
+            <button key={a.id} className={`agent-pill ${selectedAgents[a.id]?"sel":""}`} 
+                    onClick={()=>setSelectedAgents(prev => ({...prev, [a.id]: !prev[a.id]}))}>
+              <span className="agent-pill-dot" style={{background:selectedAgents[a.id]?a.dot:"rgba(255,255,255,0.15)"}}/>
+              {a.label}
+              <span style={{fontSize:10,color:"#374151",fontFamily:"'JetBrains Mono',monospace"}}>
+                {selectedAgents[a.id] ? " (On)" : " (Off)"}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* INPUT */}
+        <div className="chat-input-zone">
+          <div className="prompt-chips">
+            {PROMPTS.map((p,i)=>(
+              <button key={i} className="pchip" onClick={()=>send(p)}>{p}</button>
+            ))}
+          </div>
+          <div className="chat-input-row">
+            <textarea
+              className="chat-textarea"
+              placeholder={(!selectedAgents.planner && selectedAgents.verifier && !selectedAgents.executor) ? "Paste JSON with {plan, execution} to verify..." : (!selectedAgents.planner) ? "Paste your JSON plan here..." : "Ask TechBot AI anything… (Enter to send, Shift+Enter for newline)"}
+              value={input}
+              onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()} }}
+              rows={1}
+            />
+            <button className="send-btn" onClick={()=>send()} disabled={!input.trim()||loading}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ABOUT PAGE
+───────────────────────────────────────────────────────────────────────────── */
+function AboutPage() {
+  const [filter, setFilter] = useState("All");
+  const tags = ["All",...Array.from(new Set(FEATURES.map(f=>f.tag)))];
+  const filtered = filter==="All"?FEATURES:FEATURES.filter(f=>f.tag===filter);
+
+  const archCards = [
+    {
+      icon:"🧠",iconBg:"rgba(99,102,241,0.15)",
+      title:"Planner Agent",
+      desc:"Receives your natural-language task and uses an LLM to produce a structured, step-by-step JSON plan. Specifies which tools to invoke and in what order. Constrained to always return valid JSON output.",
+      badge:"LLM-powered · JSON output",badgeBg:"rgba(99,102,241,0.1)",badgeTc:"#818cf8",badgeBc:"rgba(99,102,241,0.25)"
+    },
+    {
+      icon:"⚡",iconBg:"rgba(52,211,153,0.12)",
+      title:"Executor Agent",
+      desc:"Iterates through each step in the plan, calls the appropriate tool or real third-party API, and collects results. Handles API failures gracefully with automatic retry logic and partial result caching.",
+      badge:"Parallel execution · retry logic",badgeBg:"rgba(52,211,153,0.08)",badgeTc:"#34d399",badgeBc:"rgba(52,211,153,0.2)"
+    },
+    {
+      icon:"✅",iconBg:"rgba(251,146,60,0.12)",
+      title:"Verifier Agent",
+      desc:"Validates collected results for completeness and correctness. Retries missing data, formats the final structured output, and ensures schema compliance before returning the verified answer.",
+      badge:"Schema validation · structured output",badgeBg:"rgba(251,146,60,0.08)",badgeTc:"#fb923c",badgeBc:"rgba(251,146,60,0.2)"
+    },
+  ];
+
+  return (
+    <div className="about-page">
+      {/* HERO */}
+      <div className="about-hero">
+        <div className="about-hero-tag fu">⬡ TechBot AI · CodeWar 2.0 · Generative AI & Agentic Systems</div>
+        <h1 className="about-h1 fu fu1">Built for <em>agentic</em><br/>intelligence</h1>
+        <p className="about-sub fu fu2">
+          TechBot AI implements a genuine 3-agent architecture — Planner, Executor, Verifier — with real API integrations, graceful error handling, and verified structured outputs. Not a chatbot. An AI operations system.
+        </p>
+        <div className="about-meta-row fu fu3">
+          <div className="about-stat">
+            <span className="about-stat-n">3</span>
+            <span className="about-stat-l">AI agents</span>
+          </div>
+          <div className="about-stat-div"/>
+          <div className="about-stat">
+            <span className="about-stat-n">25</span>
+            <span className="about-stat-l">capabilities</span>
+          </div>
+          <div className="about-stat-div"/>
+          <div className="about-stat">
+            <span className="about-stat-n">40+</span>
+            <span className="about-stat-l">languages</span>
+          </div>
+          <div className="about-stat-div"/>
+          <div className="about-stat">
+            <span className="about-stat-n">2+</span>
+            <span className="about-stat-l">real APIs</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ARCHITECTURE */}
+      <div className="arch-section">
+        <div style={{maxWidth:1000,margin:"0 auto"}}>
+          <div className="section-label fu">mandatory architecture</div>
+          <h2 className="section-h2 fu fu1">Three-agent pipeline</h2>
+          <p className="section-sub fu fu2">
+            Each agent is a distinct, independently prompted component with its own LLM call, responsibility, and error boundary. No monolithic single-prompt shortcuts.
+          </p>
+          <div className="arch-grid">
+            {archCards.map((c,i)=>(
+              <div key={i} className="arch-card fu" style={{animationDelay:`${i*0.08}s`}}>
+                <div className="arch-icon" style={{background:c.iconBg,fontSize:20}}>{c.icon}</div>
+                <div className="arch-card-title">{c.title}</div>
+                <div className="arch-card-desc">{c.desc}</div>
+                <span className="arch-card-badge" style={{background:c.badgeBg,color:c.badgeTc,border:`1px solid ${c.badgeBc}`}}>{c.badge}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* flow diagram */}
+          <div style={{marginTop:"2.5rem",padding:"1.5rem",background:"rgba(255,255,255,0.02)",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,display:"flex",alignItems:"center",justifyContent:"center",gap:"1rem",flexWrap:"wrap"}}>
+            {[
+              {label:"User Task",sub:"Natural language",color:"#6b7280",bg:"rgba(107,114,128,0.1)"},
+              {label:"→",sub:""},
+              {label:"Planner",sub:"JSON plan",color:"#818cf8",bg:"rgba(99,102,241,0.1)"},
+              {label:"→",sub:""},
+              {label:"Executor",sub:"API calls",color:"#34d399",bg:"rgba(52,211,153,0.1)"},
+              {label:"→",sub:""},
+              {label:"Verifier",sub:"Schema check",color:"#fb923c",bg:"rgba(251,146,60,0.1)"},
+              {label:"→",sub:""},
+              {label:"Output",sub:"Verified JSON",color:"#60a5fa",bg:"rgba(59,130,246,0.1)"},
+            ].map((n,i)=>
+              n.label==="→"
+                ? <span key={i} style={{color:"#374151",fontSize:18}}>→</span>
+                : <div key={i} style={{padding:"8px 16px",borderRadius:9,background:n.bg,border:`1px solid ${n.color}33`,textAlign:"center"}}>
+                    <div style={{fontSize:13,fontWeight:600,color:n.color,fontFamily:"'JetBrains Mono',monospace"}}>{n.label}</div>
+                    <div style={{fontSize:10,color:"#4b5563",marginTop:2}}>{n.sub}</div>
+                  </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 25 CAPABILITIES */}
+      <div className="caps-section">
+        <div style={{maxWidth:1100,margin:"0 auto"}}>
+          <div className="section-label fu">all capabilities</div>
+          <h2 className="section-h2 fu fu1">25 developer features</h2>
+          <p className="section-sub fu fu2">Every feature powered by the same 3-agent pipeline. Filter by category.</p>
+          <div className="caps-filter fu fu2">
+            {tags.map(t=>(
+              <button key={t} className={`cap-filter-btn ${filter===t?"on":""}`} onClick={()=>setFilter(t)}>{t}</button>
+            ))}
+          </div>
+          <div className="caps-grid">
+            {filtered.map(f=>(
+              <div key={f.id} className="cap-card">
+                <div className="cap-card-top">
+                  <span className="cap-num">#{f.id}</span>
+                  <span className="cap-tag" style={{background:f.bg,color:f.tc,border:`1px solid ${f.bc}`}}>{f.tag}</span>
+                </div>
+                <div className="cap-title">{f.title}</div>
+                <div className="cap-desc">{f.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   LOGIN MODAL
+───────────────────────────────────────────────────────────────────────────── */
+function LoginModal({onClose,onLogin}) {
+  const [email,setEmail] = useState("");
+  const [pass,setPass]   = useState("");
+  const [mode,setMode]   = useState("login");
+
+  const submit = ()=>{
+    if(email) { onLogin({name:email.split("@")[0]||"Developer",email}); onClose(); }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="modal fu">
+        <button className="modal-close" onClick={onClose}>×</button>
+        <div className="modal-header">
+          <div className="modal-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
+              <line x1="12" y1="2" x2="12" y2="22"/>
+              <line x1="2" y1="8.5" x2="22" y2="8.5"/>
+              <line x1="2" y1="15.5" x2="22" y2="15.5"/>
+            </svg>
+          </div>
+          <h2 className="modal-h2">{mode==="login"?"Welcome back":"Create account"}</h2>
+          <p className="modal-sub">{mode==="login"?"Sign in to TechBot AI to access your chats and history.":"Join TechBot AI — your multi-agent coding assistant."}</p>
+        </div>
+        <div className="modal-body">
+          <label className="modal-label">Email address</label>
+          <input className="modal-input" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          <label className="modal-label">Password</label>
+          <input className="modal-input" type="password" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/>
+          <button className="modal-submit" onClick={submit}>{mode==="login"?"Sign in →":"Create account →"}</button>
+          <div className="modal-divider">
+            <div className="modal-divider-line"/><span className="modal-divider-text">or continue with</span><div className="modal-divider-line"/>
+          </div>
+          <button className="modal-social" onClick={()=>{onLogin({name:"GitHub User",email:"github@user.com"});onClose()}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#e2e2f0"><path d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.387-1.333-1.756-1.333-1.756-1.09-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.929.43.372.823 1.102.823 2.222 0 1.606-.015 2.898-.015 3.293 0 .319.216.694.825.576C20.565 21.796 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            Continue with GitHub
+          </button>
+          <button className="modal-social" onClick={()=>{onLogin({name:"Google User",email:"google@user.com"});onClose()}}>
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Continue with Google
+          </button>
+          <p className="modal-footer-text">
+            {mode==="login"?"Don't have an account? ":"Already have an account? "}
+            <span onClick={()=>setMode(m=>m==="login"?"signup":"login")}>
+              {mode==="login"?"Sign up free":"Sign in"}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ROOT APP
+───────────────────────────────────────────────────────────────────────────── */
+function App() {
+  const [page, setPage]       = useState("home");
+  const [showLogin, setLogin] = useState(false);
+  const [user, setUser]       = useState(null);
+
+  return (
+    <>
+      <style>{G}</style>
+      <div className="root">
+        {/* NAV */}
+        <nav className="nav">
+          <div className="nav-left" onClick={()=>setPage("home")}>
+            <div className="nav-gem">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+                <polygon points="12,2 22,8.5 22,15.5 12,22 2,15.5 2,8.5"/>
+                <line x1="12" y1="2" x2="12" y2="22"/>
+                <line x1="2" y1="8.5" x2="22" y2="8.5"/>
+                <line x1="2" y1="15.5" x2="22" y2="15.5"/>
+              </svg>
+            </div>
+            <span className="nav-brand">TechBot AI</span>
+            <span className="nav-badge">CODEWAR 2.0</span>
+          </div>
+
+          <div className="nav-center">
+            {[["home","Home"],["chat","Chat"],["about","About"]].map(([id,label])=>(
+              <button key={id} className={`nav-btn ${page===id?"active":""}`} onClick={()=>setPage(id)}>{label}</button>
+            ))}
+          </div>
+
+          <div className="nav-right">
+            {user
+              ? <div className="nav-avatar" title={user.name}>{user.name[0].toUpperCase()}</div>
+              : <button className="nav-login" onClick={()=>setLogin(true)}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round">
+                    <circle cx="8" cy="5.5" r="2.5"/><path d="M2 14c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/>
+                  </svg>
+                  Login
+                </button>
+            }
+          </div>
+        </nav>
+
+        {/* PAGES */}
+        {page==="home"  && <HomePage onNav={setPage}/>}
+        {page==="chat"  && <ChatPage user={user}/>}
+        {page==="about" && <AboutPage/>}
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <span className="footer-l">© 2026 TechBot AI · CodeWar 2.0 · Track: Generative AI & Agentic Systems</span>
+          <div className="footer-links">
+            {["Privacy","Terms","GitHub","Docs"].map(l=>(
+              <span key={l} className="footer-link">{l}</span>
+            ))}
+          </div>
+        </footer>
+
+        {/* LOGIN MODAL */}
+        {showLogin&&<LoginModal onClose={()=>setLogin(false)} onLogin={setUser}/>}
+      </div>
+    </>
+  );
+}
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
