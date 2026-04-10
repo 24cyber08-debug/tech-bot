@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: tech-bot
+    runtime: python
+    pythonVersion: "3.11.0"
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: ABSTRACT_PHONE_KEY
+        sync: false
+      - key: ABSTRACT_EMAIL_KEY
+        sync: false
+      - key: ABSTRACT_IP_KEY
+        sync: false
