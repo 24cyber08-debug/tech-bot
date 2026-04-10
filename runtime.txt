@@ -1,1 +1,4 @@
 python-3.11.12
+git add runtime.txt
+git commit -m "Fix Netlify build by pinning Python 3.11"
+git push
